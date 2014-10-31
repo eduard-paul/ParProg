@@ -159,7 +159,7 @@ void merge(double *a, double *b1, int k1, int k2, int k3) {
 
 int main(int argc, char **argv)
 {
-    int N = 1000000;
+    int N = 10;
     double *a = new double[N];
     for(int i=0;i<N;i++){
         a[i]=N/2-i;
@@ -204,12 +204,12 @@ int main(int argc, char **argv)
     time2+=omp_get_wtime();
     std::cout<<time2<<std::endl;
 
-    //for(int i=0;i<N;i++){
-    //    std::cout<<a[i]<<", ";
-    //}std::cout<<std::endl;
-    //for(int i=0;i<N;i++){
-    //    std::cout<<b1[i]<<", ";
-    //}
+    for(int i=0;i<N;i++){
+        std::cout<<a[i]<<", ";
+    }std::cout<<std::endl;
+    for(int i=0;i<N;i++){
+        std::cout<<b1[i]<<", ";
+    }
     system("pause");
     return 0;
 }
