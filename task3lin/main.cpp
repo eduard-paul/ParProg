@@ -211,11 +211,11 @@ double log2( double n )
     return log( n ) / log( 2 );  
 }
 
-using namespace std;
-
 double rand(double LO, double HI){
     return (LO + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(HI-LO))));
 }
+
+using namespace std;
 
 int main(int argc, char **argv)
 {
