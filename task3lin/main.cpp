@@ -14,69 +14,6 @@ __int64 doubleMask(int i) {
     return m;
 }
 
-void UINT_LSD_Radix_Sort(unsigned int *a, int n){
-    int numBit = 0;
-    unsigned int *b1 = new unsigned int[n];
-    unsigned int *b2 = new unsigned int[n];
-    while(numBit < 32){
-        int q1 = 0, q2 = 0;
-        for(int i=0; i<n; i++)
-            if(0==(uintMask(numBit)&(a[i]))) 
-                b1[q1++]=a[i];
-            else
-                b2[q2++]=a[i];
-        for(int i=0;i<q1;i++) a[i]=b1[i];
-        for(int i=0;i<q2;i++) a[q1+i]=b2[i];
-        numBit++;
-    }
-    delete []b1;
-    delete []b2;
-}
-
-void double_LSD_Radix_Sort(double *a_, int left, int right){
-    __int64 *a = (__int64*)a_;
-    int numBit = 0;
-    double *b1 = new double[right-left+1];
-    double *b2 = new double[right-left+1];
-
-    int q = 0, q2 = 0;
-    for(int i=left; i<right+1; i++)
-        if(doubleMask(63)==(doubleMask(63)&(a[i]))) 
-            b1[q++]=a_[i];
-        else
-            b2[q2++]=a_[i];
-    for(int i=0;i<q;i++) a_[i+left]=b1[i];
-    for(int i=0;i<q2;i++) a_[q+i+left]=b2[i];
-
-    while(numBit < 63){
-        int q1 = 0, q2 = 0;
-        for(int i=left; i<q+left; i++)
-            if(doubleMask(numBit)==(doubleMask(numBit)&(a[i]))) 
-                b1[q1++]=a_[i];
-            else
-                b2[q2++]=a_[i];
-
-        for(int i=0;i<q1;i++) a_[i+left]=b1[i];
-        for(int i=0;i<q2;i++) a_[q1+i+left]=b2[i];
-        numBit++;
-    }
-    numBit=0;
-    while(numBit < 63){
-        int q1 = 0, q2 = 0;
-        for(int i=q+left; i<right+1; i++)
-            if(doubleMask(numBit)!=(doubleMask(numBit)&(a[i]))) 
-                b1[q1++]=a_[i];
-            else
-                b2[q2++]=a_[i];
-
-        for(int i=0;i<q1;i++) a_[q+i+left]=b1[i];
-        for(int i=0;i<q2;i++) a_[q+q1+i+left]=b2[i];
-        numBit++;
-    }
-    delete []b1;
-    delete []b2;
-}
-
 void UINT_MSD_Radix_Sort(unsigned int *a, int left, int right, int numBit = 31){
     if(left>=right) return;
     int l=left, r = right;
