@@ -229,6 +229,7 @@ int main(int argc, char **argv)
     double *a=NULL, *b;
     int N = atoi(argv[1]);
     threadNum = atoi(argv[2]);
+    int mode = atoi(argv[3]);
     //int N = 18;
     if(rank==0){
         a = new double[N];
@@ -237,11 +238,14 @@ int main(int argc, char **argv)
             a[i]=rand(minV,maxV);
             b[i]=a[i];
         }        
-
-        double time2=-omp_get_wtime();
-        double_MSD_Radix_Sort(b,0,N-1);
-        time2+=omp_get_wtime();
-        std::cout<<"Lenear version: "<<time2<<std::endl;
+        if(mode==1){
+            double time2=-omp_get_wtime();
+            double_MSD_Radix_Sort(b,0,N-1);
+            time2+=omp_get_wtime();
+            std::cout<<"Lenear version: "<<time2<<std::endl;
+            MPI_Finalize();
+            return 0;
+        }
     }
     int *sendcounts = new int[size],*displs = new int[size];
     for(int i=0; i< size-1;i++){
@@ -257,16 +261,16 @@ int main(int argc, char **argv)
     MPI_Scatterv(a,sendcounts,displs,MPI_DOUBLE,recvbuf,sendcounts[rank],MPI_DOUBLE,0,MPI_COMM_WORLD);
     int currCount = sendcounts[rank];
     localParSort(recvbuf,0,currCount-1,threadNum);
-//Send&Merge
+    //Send&Merge
     bool empty = false;
     unsigned int urank = rank;
     for(int i=0;i<(int)(log2(size)+0.001);i++){
         if(!empty){
             if(urank==(urank|uintMask(i))){                
                 empty = true;
-                
+
                 MPI_Send(recvbuf,currCount,MPI_DOUBLE,(int)(urank^uintMask(i)),0,MPI_COMM_WORLD); 
-                
+
                 delete[] recvbuf;
             }
             else{
@@ -278,9 +282,9 @@ int main(int argc, char **argv)
 
                 MPI_Get_count( &status, MPI_DOUBLE, &recvCount );
                 double *res = new double[currCount+recvCount];
-                
+
                 merge(recvbuf,tmpRecv,res,currCount,recvCount);
-                
+
                 currCount += recvCount;
                 delete[] recvbuf;
                 delete[] tmpRecv;
@@ -290,8 +294,6 @@ int main(int argc, char **argv)
             }
         }
     }
-
-    
     if(rank==0){
         time1+=omp_get_wtime();
         std::cout<<"Parallel version: "<<time1<<std::endl;
