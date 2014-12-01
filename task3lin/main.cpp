@@ -213,7 +213,7 @@ int main(int argc, char **argv)
             else{
                 MPI_Status status;
                 int recvCount;
-                double *tmpRecv = new double[currCount*2];
+                double *tmpRecv = new double[currCount];
 
                 MPI_Recv(tmpRecv,N,MPI_DOUBLE,(int)(urank^uintMask(i)),0,MPI_COMM_WORLD,&status);
 
