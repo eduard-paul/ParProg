@@ -18,9 +18,9 @@ void UINT_MSD_Radix_Sort(unsigned int *a, int left, int right, int numBit = 31){
     if(left>=right) return;
     int l=left, r = right;
     while(left<right) {
-        while(0==(uintMask(numBit)&(a[left]))) 
+        while((left<r)&&(0==(uintMask(numBit)&(a[left])))) 
             left++;
-        while(0!=((a[right])&(uintMask(numBit)))) 
+        while((right>l)&&(0!=((a[right])&(uintMask(numBit))))) 
             right--;
         if(left<right) {
             unsigned int tmp = a[left];
@@ -31,6 +31,40 @@ void UINT_MSD_Radix_Sort(unsigned int *a, int left, int right, int numBit = 31){
     if(numBit==0) return;
     UINT_MSD_Radix_Sort(a,l,right,numBit-1);
     UINT_MSD_Radix_Sort(a,left,r,numBit-1);
+}
+
+void INT_MSD_Radix_Sort(int *a, int left, int right, int numBit = 31){
+    if(left>=right) return;
+    int l=left, r = right;
+    if(numBit==31){
+        while(left<right) {
+            while((left<r)&&(0!=(uintMask(numBit)&(a[left])))) 
+                left++;
+            while((right>l)&&(0==((a[right])&(uintMask(numBit))))) 
+                right--;
+            if(left<right) {
+                unsigned int tmp = a[left];
+                a[left] = a[right];
+                a[right] = tmp;
+            }
+        }
+    }
+    else{
+        while(left<right) {
+            while((left<r)&&(0==(uintMask(numBit)&(a[left])))) 
+                left++;
+            while((right>l)&&(0!=((a[right])&(uintMask(numBit))))) 
+                right--;
+            if(left<right) {
+                unsigned int tmp = a[left];
+                a[left] = a[right];
+                a[right] = tmp;
+            }
+        }
+    }
+    if(numBit==0) return;
+    INT_MSD_Radix_Sort(a,l,right,numBit-1);
+    INT_MSD_Radix_Sort(a,left,r,numBit-1);
 }
 
 void _double_MSD_Radix_Sort(__int64 *a, int left, int right, int q, int numBit = 62){
@@ -99,16 +133,16 @@ void merge(double *a1, double *a2, double *b, int n1, int n2) {
 }
 
 void merge(double *a, int _k1, int _k2, int _k3) {
-    int k1=_k1, k2=_k2, k=0, kk=k2;
+    int k1=_k1, k2=_k2, k=0;
     double *b1 = new double[_k3-_k1+1];
-    while((k1<kk)&&(k2<_k3+1)) {
+    while((k1<_k2)&&(k2<_k3+1)) {
         if(a[k1]<=a[k2]){
             b1[k++]=a[k1++];
         } else {
             b1[k++]=a[k2++];
         }
     }
-    while (k1<kk) b1[k++]=a[k1++];
+    while (k1<_k2) b1[k++]=a[k1++];
     while (k2<_k3+1) b1[k++]=a[k2++];
     for(int i = _k1;i<_k3+1;i++) a[i]=b1[i-_k1];
     delete[] b1;
@@ -123,14 +157,15 @@ void localParSort(double* a, int start, int end, int threadNum=1){
         int q = omp_get_thread_num();
         int numCount = N/omp_get_num_threads() + 1;
         double_MSD_Radix_Sort(a,__min(q*numCount+start,end),__min((1+q)*numCount-1+start,end));
-#pragma omp barrier 
-#pragma omp master 
+#pragma omp barrier
+#pragma omp master
         if (omp_get_num_threads()==2) {
             int k = N/omp_get_num_threads() + 1;
             merge(a,start,start+k,end);
         }
         if (omp_get_num_threads()==4) {
-            int k2 = N/omp_get_num_threads() + 1, k3 = 2*(N/omp_get_num_threads()+1),
+            int k2 = N/omp_get_num_threads() + 1, 
+                k3 = 2*(N/omp_get_num_threads()+1),
                 k4 = 3*(N/omp_get_num_threads() + 1);
 #pragma omp single 
             merge(a,start+0,start+k2,start+k3-1);
@@ -166,23 +201,19 @@ int main(int argc, char **argv)
     double *a=NULL, *b;
     int N = atoi(argv[1]);
     threadNum = atoi(argv[2]);
-    int mode = atoi(argv[3]);
     //int N = 18;
     if(rank==0){
         a = new double[N];
         b = new double[N];
         for(int i=0;i<N;i++){
             a[i]=rand(minV,maxV);
-            b[i]=a[i];
+            b[i]=(int)a[i];
         }        
-        if(mode==1){
-            double time2=-omp_get_wtime();
-            double_MSD_Radix_Sort(b,0,N-1);
-            time2+=omp_get_wtime();
-            std::cout<<"Lenear version: "<<time2<<std::endl;
-            MPI_Finalize();
-            return 0;
-        }
+        double time2=-omp_get_wtime();
+        double_MSD_Radix_Sort(b,0,N-1);
+        time2+=omp_get_wtime();
+        std::cout<<"Lenear version: "<<time2<<std::endl;
+
     }
     int *sendcounts = new int[size],*displs = new int[size];
     for(int i=0; i< size-1;i++){
@@ -200,13 +231,12 @@ int main(int argc, char **argv)
     localParSort(recvbuf,0,currCount-1,threadNum);
     //Send&Merge
     bool empty = false;
-    unsigned int urank = rank;
     for(int i=0;i<(int)(log2(size)+0.001);i++){
         if(!empty){
-            if(urank==(urank|uintMask(i))){                
+            if(0!=(rank&uintMask(i))){        
                 empty = true;
 
-                MPI_Send(recvbuf,currCount,MPI_DOUBLE,(int)(urank^uintMask(i)),0,MPI_COMM_WORLD); 
+                MPI_Send(recvbuf,currCount,MPI_DOUBLE,(int)(rank^uintMask(i)),0,MPI_COMM_WORLD); 
 
                 delete[] recvbuf;
             }
@@ -215,7 +245,7 @@ int main(int argc, char **argv)
                 int recvCount;
                 double *tmpRecv = new double[currCount];
 
-                MPI_Recv(tmpRecv,N,MPI_DOUBLE,(int)(urank^uintMask(i)),0,MPI_COMM_WORLD,&status);
+                MPI_Recv(tmpRecv,N,MPI_DOUBLE,(int)(rank^uintMask(i)),0,MPI_COMM_WORLD,&status);
 
                 MPI_Get_count( &status, MPI_DOUBLE, &recvCount );
                 double *res = new double[currCount+recvCount];
