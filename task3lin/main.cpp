@@ -207,7 +207,7 @@ int main(int argc, char **argv)
         b = new double[N];
         for(int i=0;i<N;i++){
             a[i]=rand(minV,maxV);
-            b[i]=(int)a[i];
+            b[i]=a[i];
         }        
         double time2=-omp_get_wtime();
         double_MSD_Radix_Sort(b,0,N-1);
@@ -263,6 +263,12 @@ int main(int argc, char **argv)
     }
     if(rank==0){
         time1+=omp_get_wtime();
+        for(int i=0;i<N;i++){
+            if (b[i] != recvbuf[i]){
+                std::cout<<"Wrong answer in parallel version\n";
+                return 0;
+            }
+        }
         std::cout<<"Parallel version: "<<time1<<std::endl;
         if(N<30){
             for(int i=0;i<N;i++){
